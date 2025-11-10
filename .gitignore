@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+
+# Angular build
+.angular/
+build/
+tmp/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.angular
+.vscode/
+
+finops-web/node_modules/
+finops-web/dist/ 
+finops-backend/node_modules/
+finops-backend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
