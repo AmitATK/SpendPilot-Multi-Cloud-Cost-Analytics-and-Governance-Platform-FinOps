@@ -1,23 +1,88 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { Pool } from 'pg';
 
 @Injectable()
 export class AlertsService {
-  private log = new Logger(AlertsService.name);
-
-  private mailer = process.env.SMTP_HOST
-    ? nodemailer.createTransport({
-        host: process.env.SMTP_HOST,                 // e.g. 127.0.0.1
-        port: Number(process.env.SMTP_PORT || 1025),
-        family: 4,                                   // force IPv4, avoids ::1
-        auth: process.env.SMTP_USER
-          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-          : undefined,
-      })
-    : null;
+  private mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 1025),
+    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+  });
 
   constructor(private pg: Pool) {}
+
+  /* ===== CRUD for alert_channels ===== */
+
+  async listChannels(orgId: string) {
+    const { rows } = await this.pg.query(
+      `select id, org_id, channel, target, scope, active, created_at
+         from alert_channels
+        where org_id=$1
+        order by created_at desc`,
+      [orgId]
+    );
+    return rows;
+  }
+
+  async createChannel(orgId: string, dto: { channel: 'email' | 'slack'; target: string; scope?: any; active?: boolean }) {
+    if (!dto?.channel || !dto?.target) throw new Error('channel and target are required');
+    const { rows } = await this.pg.query(
+      `insert into alert_channels(org_id, channel, target, scope, active)
+       values($1,$2,$3,$4,$5)
+       returning id, org_id, channel, target, scope, active, created_at`,
+      [orgId, dto.channel, dto.target, dto.scope || {}, dto.active ?? true]
+    );
+    return rows[0];
+  }
+
+  async updateChannel(
+    orgId: string,
+    id: string,
+    dto: Partial<{ channel: 'email' | 'slack'; target: string; scope: any; active: boolean }>
+  ) {
+    // Build dynamic update
+    const fields: string[] = [];
+    const args: any[] = [];
+    let i = 1;
+
+    const set = (col: string, val: any) => {
+      fields.push(`${col}=$${++i}`);
+      args.push(val);
+    };
+
+    args.push(orgId); // $1
+    if (dto.channel) set('channel', dto.channel);
+    if (dto.target !== undefined) set('target', dto.target);
+    if (dto.scope !== undefined) set('scope', dto.scope);
+    if (dto.active !== undefined) set('active', dto.active);
+
+    if (fields.length === 0) {
+      const { rows } = await this.pg.query(
+        `select id, org_id, channel, target, scope, active, created_at
+           from alert_channels where org_id=$1 and id=$2`,
+        [orgId, id]
+      );
+      return rows[0];
+    }
+
+    const sql = `
+      update alert_channels
+         set ${fields.join(', ')}
+       where org_id=$1 and id=$${++i}
+       returning id, org_id, channel, target, scope, active, created_at
+    `;
+    args.push(id);
+
+    const { rows } = await this.pg.query(sql, args);
+    return rows[0];
+  }
+
+  async deleteChannel(orgId: string, id: string) {
+    await this.pg.query(`delete from alert_channels where org_id=$1 and id=$2`, [orgId, id]);
+  }
+
+  /* ===== Target resolution + senders ===== */
 
   async targets(orgId: string, _scope: any) {
     const { rows } = await this.pg.query(
@@ -27,11 +92,7 @@ export class AlertsService {
     return rows;
   }
 
-  async sendBudgetAlert(
-    orgId: string,
-    budget: any,
-    ctx: { spend: number; pct: number; threshold: number; periodStart: Date }
-  ) {
+  async sendBudgetAlert(orgId: string, budget: any, ctx: { spend: number; pct: number; threshold: number; periodStart: Date; }) {
     const channels = await this.targets(orgId, budget.scope);
     const subject = `Budget ${budget.name}: ${ctx.threshold}% threshold crossed (${ctx.pct}% used)`;
     const text = `Budget: ${budget.name}
@@ -41,102 +102,34 @@ Limit: ${budget.monthly_limit} ${budget.currency}
 Usage: ${ctx.pct}%
 Period: ${ctx.periodStart.toISOString().slice(0,10)}`;
 
+    let sent = 0;
+    for (const ch of channels) sent += await this.sendViaChannel(ch, subject, text);
+    return sent;
+  }
+
+  async sendTest(orgId: string, message: string) {
+    const channels = await this.targets(orgId, {});
+    let sent = 0;
     for (const ch of channels) {
-      if (ch.channel === 'email') {
-        if (!this.mailer) {
-          this.log.warn('SMTP not configured; skipping email send');
-          continue;
-        }
-        try {
-          await this.mailer.sendMail({ from: process.env.SMTP_FROM, to: ch.target, subject, text });
-        } catch (e: any) {
-          this.log.warn(`SMTP send failed: ${e?.message || e}`);
-          // do not throw in dev
-        }
-      } else if (ch.channel === 'slack') {
-        const hook = (ch.target || process.env.SLACK_WEBHOOK) as string;
-        if (!hook) {
-          this.log.warn('Slack webhook not set; skipping slack alert');
-          continue;
-        }
-        try {
-          await fetch(hook, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: `:warning: ${subject}\n${text}` }),
-          });
-        } catch (e: any) {
-          this.log.warn(`Slack send failed: ${e?.message || e}`);
-        }
-      }
+      sent += await this.sendViaChannel(ch, 'FinOps Test Alert', message);
     }
+    return sent;
   }
 
-  // ADD THIS METHOD to AlertsService
-async sendAnomalyAlert(
-  orgId: string,
-  anomaly: {
-    day?: string; date?: string;
-    service?: string;
-    accountId?: string;
-    region?: string;
-    actual?: number; expected?: number; delta?: number; pct?: number; zscore?: number;
-    currency?: string;
-    details?: any;
-    [k: string]: any;
-  }
-) {
-  const date = anomaly.day || anomaly.date || '';
-  const svc = anomaly.service || 'Unknown';
-  const currency = anomaly.currency || 'INR';
-  const actual = anomaly.actual ?? anomaly.observed ?? anomaly.actualCost ?? anomaly.cost ?? 0;
-  const expected = anomaly.expected ?? anomaly.baseline ?? 0;
-  const delta = anomaly.delta ?? (Number(actual) - Number(expected));
-  const pct = anomaly.pct ?? (expected ? Math.round((Number(actual) / Number(expected)) * 100) : null);
-  const z = anomaly.zscore ?? anomaly.z ?? null;
-
-  const subject = `Anomaly detected: ${svc}${date ? ' on ' + date : ''}`;
-  const text = `Anomaly detected
-Service: ${svc}
-Date: ${date}
-Actual: ${actual} ${currency}
-Expected: ${expected} ${currency}
-Delta: ${delta} ${currency}${pct !== null ? ` (${pct}% of expected)` : ''}
-${z !== null ? `Z-Score: ${z}\n` : ''}
-Account: ${anomaly.accountId ?? '-'}
-Region: ${anomaly.region ?? '-'}
-Details: ${JSON.stringify(anomaly.details ?? anomaly, null, 2)}`;
-
-  const channels = await this.targets(orgId, {}); // reuse existing channel lookup
-  for (const ch of channels) {
+  private async sendViaChannel(ch: any, subject: string, text: string) {
     if (ch.channel === 'email') {
-      if ((this as any).mailer) {
-        try {
-          await (this as any).mailer.sendMail({
-            from: process.env.SMTP_FROM,
-            to: ch.target,
-            subject,
-            text,
-          });
-        } catch (e) {
-          // don't crash on email issues in dev
-          // optionally log here if you use a Logger
-        }
-      }
-    } else if (ch.channel === 'slack') {
-      const hook = (ch.target || process.env.SLACK_WEBHOOK) as string | undefined;
-      if (!hook) continue;
-      try {
-        await fetch(hook, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: `:rotating_light: ${subject}\n${text}` }),
-        });
-      } catch {
-        // swallow slack errors in dev
-      }
+      await this.mailer.sendMail({ from: process.env.SMTP_FROM, to: ch.target, subject, text });
+      return 1;
     }
+    if (ch.channel === 'slack') {
+      const webhook = ch.target || process.env.SLACK_WEBHOOK;
+      if (!webhook) return 0;
+      await fetch(webhook as string, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: `*${subject}*\n${text}` }),
+      });
+      return 1;
+    }
+    return 0;
   }
-}
-
 }

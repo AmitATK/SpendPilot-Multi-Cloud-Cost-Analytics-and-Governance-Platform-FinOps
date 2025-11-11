@@ -20,7 +20,8 @@ export const routes: Routes = [
   { path: 'login',     loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent) },
   { path: 'register',  loadComponent: () => import('./auth/register.component').then(m => m.RegisterComponent) },
   { path: 'profile',   loadComponent: () => import('./features/profile.component').then(m => m.ProfileComponent) },
-  { path: '**', redirectTo: '' }
-  
+  { path: 'tags-hygiene', loadComponent: () => import('./features/tags-hygiene.component').then(m => m.TagsHygieneComponent) },
+  { path: 'statements', loadComponent: () => import('./features/statements.component').then(m => m.StatementsComponent) },
+  { path: '**', redirectTo: '' },
 
 ];

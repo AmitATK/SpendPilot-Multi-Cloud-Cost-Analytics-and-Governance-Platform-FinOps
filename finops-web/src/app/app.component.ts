@@ -51,8 +51,12 @@ import { MatMenuModule } from '@angular/material/menu';
           <a class="nav-link" routerLink="ingest" routerLinkActive="active">
             <mat-icon>cloud_upload</mat-icon><span>Ingest</span>
           </a>  
-          
-
+        <a class="nav-link" routerLink="tags-hygiene" routerLinkActive="active">
+    <mat-icon>sell</mat-icon> <span>Tags</span>
+  </a>
+        <a class="nav-link" routerLink="statements" routerLinkActive="active">
+    <mat-icon>receipt_long</mat-icon> <span>Statements</span>
+  </a>  
           <a class="nav-link" routerLink="alerts" routerLinkActive="active">
             <mat-icon>notifications</mat-icon><span>Alerts</span>
           </a>

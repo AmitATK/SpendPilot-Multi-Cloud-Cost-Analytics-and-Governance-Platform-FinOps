@@ -27,6 +27,9 @@ import { Anomaly } from './entities/anomaly.entity';
 import { JobsModule } from './jobs/jobs.module';
 import { IngestModule } from './features/ingest/ingest.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { TagsModule } from './features/tags/tags.module';
+import { ShowbackModule } from './features/showback/showback.module';
+import { StatementsModule } from './features/statements/statements.module';
 
 @Module({
   imports: [
@@ -56,6 +59,9 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     JobsModule,
     IngestModule,
     SchedulerModule,
+    TagsModule,
+    ShowbackModule,
+    StatementsModule,
   ],
   controllers: [HealthController],
 })
