@@ -28,14 +28,26 @@ import { ApiService } from '../api.service';
       </form>
       <p class="text-sm" style="margin-top:8px">Backend endpoint: <code>/v1/ingest/aws/cur</code></p>
     </mat-card>
+    <mat-card style="margin-top:12px;">
+<h3>Azure Cost (CSV)</h3>
+<input type="file" #az (change)="ingestAzure(az.files?.[0])" />
+</mat-card>
+
+
+<mat-card style="margin-top:12px;">
+<h3>GCP Billing (CSV)</h3>
+<input type="file" #g (change)="ingestGcp(g.files?.[0])" />
+</mat-card>
   `
 })
 export class IngestComponent {
   private api = inject(ApiService);
-  start(e: Event){
+  start(e: Event) {
     e.preventDefault();
     const fd = new FormData(e.target as HTMLFormElement);
     const payload = { bucket: fd.get('bucket'), prefix: fd.get('prefix'), region: fd.get('region') };
     this.api.ingestAwsCur(payload).subscribe();
   }
+  ingestAzure(file?: File) { if (!file) return; this.api.ingestAzure(file).subscribe(r => alert(`Azure rows: ${r.rows}`)); }
+  ingestGcp(file?: File) { if (!file) return; this.api.ingestGcp(file).subscribe(r => alert(`GCP rows: ${r.rows}`)); }
 }

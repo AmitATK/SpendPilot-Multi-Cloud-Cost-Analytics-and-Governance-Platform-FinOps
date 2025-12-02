@@ -30,6 +30,12 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { TagsModule } from './features/tags/tags.module';
 import { ShowbackModule } from './features/showback/showback.module';
 import { StatementsModule } from './features/statements/statements.module';
+import { SettingsModule } from './features/settings/settings.module';
+import { OptimizeModule } from './features/optimize/optimize.module';
+import { AppService } from './app.service';
+import { AdminModule } from './features/admin/admin.module';
+import { AppController } from './app.controller';
+import { HealthModule } from './core/health/health.module';
 
 @Module({
   imports: [
@@ -47,8 +53,17 @@ import { StatementsModule } from './features/statements/statements.module';
     AuthModule,
     RBACModule,
     TypeOrmModule.forFeature([
-      Org, User, UserOrgRole, CloudAccount, Resource, ResourceUsageDaily,
-      Budget, BudgetEvent, AlertChannel, CleanupSuggestion, Anomaly
+      Org,
+      User,
+      UserOrgRole,
+      CloudAccount,
+      Resource,
+      ResourceUsageDaily,
+      Budget,
+      BudgetEvent,
+      AlertChannel,
+      CleanupSuggestion,
+      Anomaly,
     ]),
     UsageModule,
     ScheduleModule.forRoot(),
@@ -62,7 +77,12 @@ import { StatementsModule } from './features/statements/statements.module';
     TagsModule,
     ShowbackModule,
     StatementsModule,
+    SettingsModule,
+    OptimizeModule,
+    AdminModule,
+    HealthModule,
   ],
-  controllers: [HealthController],
+  providers: [AppService],
+  controllers: [HealthController, AppController],
 })
 export class AppModule {}

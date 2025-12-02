@@ -51,15 +51,27 @@ import { MatMenuModule } from '@angular/material/menu';
           <a class="nav-link" routerLink="ingest" routerLinkActive="active">
             <mat-icon>cloud_upload</mat-icon><span>Ingest</span>
           </a>  
-        <a class="nav-link" routerLink="tags-hygiene" routerLinkActive="active">
-    <mat-icon>sell</mat-icon> <span>Tags</span>
-  </a>
-        <a class="nav-link" routerLink="statements" routerLinkActive="active">
-    <mat-icon>receipt_long</mat-icon> <span>Statements</span>
-  </a>  
-          <a class="nav-link" routerLink="alerts" routerLinkActive="active">
-            <mat-icon>notifications</mat-icon><span>Alerts</span>
-          </a>
+
+<a class="nav-link" routerLink="statements" routerLinkActive="active">
+  <mat-icon>receipt_long</mat-icon><span>Statements</span>
+</a>
+<a *ngIf="auth.isAdmin()" class="nav-link" routerLink="settings" routerLinkActive="active">
+  <mat-icon>tune</mat-icon><span>Settings</span>
+</a>
+
+<a class="nav-link" routerLink="alerts" routerLinkActive="active">
+  <mat-icon>notifications</mat-icon><span>Alerts</span>
+</a>
+<a class="nav-link" routerLink="rightsizing" routerLinkActive="active">
+<mat-icon>tune</mat-icon><span>Rightsizing</span>
+</a>
+<a class="nav-link" routerLink="policies" routerLinkActive="active">
+<mat-icon>rule</mat-icon><span>Policies</span>
+</a>
+<a class="nav-link" href="http://localhost:3000/docs" target="_blank" rel="noreferrer">
+  <mat-icon>description</mat-icon><span>API Docs</span>
+</a>
+
         </nav>
       </mat-sidenav>
 

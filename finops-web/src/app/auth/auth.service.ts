@@ -42,4 +42,17 @@ export class AuthService {
     localStorage.setItem('finops_token', res.token);
     localStorage.setItem('finops_user', JSON.stringify(res.user));
   }
+  
+  isAdmin(): boolean {
+  try {
+    const raw = localStorage.getItem('token');
+    if (!raw) return false;
+    const payload = JSON.parse(atob(raw.split('.')[1] || ''));
+    const role = String(payload?.role ?? '').toUpperCase();
+  return (role ?? '').toUpperCase() === 'ADMIN';
+  } catch {
+    return false;
+  }
+}
+
 }

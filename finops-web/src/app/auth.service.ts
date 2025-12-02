@@ -1,40 +1,69 @@
-import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+// src/app/auth.service.ts
+import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { ApiService } from './api.service';
 
-type LoginRes = { token: string; user: { id: string; email: string; name?: string }, orgId: string, role: string };
+export type UserRole = 'ADMIN' | 'USER' | 'VIEWER' | string;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private key = 'finops_jwt';
-  private _authed = signal<boolean>(!!localStorage.getItem(this.key));
-  user = signal<LoginRes['user'] | null>(null);
-  orgId = signal<string>('00000000-0000-0000-0000-000000000000');
+  private api = inject(ApiService);
 
-  constructor(private http: HttpClient) {}
+  // reactive state (Angular signals)
+  token = signal<string | null>(localStorage.getItem('token'));
+  orgId = signal<string | null>(localStorage.getItem('orgId'));
+  role  = signal<UserRole | null>((localStorage.getItem('role') as UserRole) || null);
 
-  token(): string | null { return localStorage.getItem(this.key); }
-  isAuthed() { return this._authed(); }
-
-  async register(email: string, password: string, name?: string) {
-    const res = await this.http.post<LoginRes>('/auth/register', { email, password, name }).toPromise();
-    this.setSession(res!);
+  /** Template helpers */
+  isAuthed(): boolean {
+    return !!this.token();
+  }
+  isAdmin(): boolean {
+    return (this.role() ?? '').toUpperCase() === 'ADMIN';
   }
 
-  async login(email: string, password: string) {
-    const res = await this.http.post<LoginRes>('/auth/login', { email, password }).toPromise();
-    this.setSession(res!);
+  /** Auth flows */
+  async login(email: string, password: string): Promise<void> {
+    const r = await firstValueFrom(this.api.login({ email, password }));
+    this.setSession(r.token, r.orgId, r.role);
   }
 
-  clear() {
-    localStorage.removeItem(this.key);
-    this._authed.set(false);
-    this.user.set(null);
+  async register(email: string, password: string, name?: string, orgName?: string): Promise<void> {
+    const r = await firstValueFrom(this.api.register({ email, password, name, orgName }));
+    this.setSession(r.token, r.orgId, r.role);
   }
 
-  private setSession(res: LoginRes) {
-    localStorage.setItem(this.key, res.token);
-    this._authed.set(true);
-    this.user.set(res.user);
-    this.orgId.set(res.orgId);
+  clear(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('orgId');
+    localStorage.removeItem('role');
+    this.token.set(null);
+    this.orgId.set(null);
+    this.role.set(null);
+  }
+
+  /** Internal */
+  private setSession(token: string, orgId: string, role?: string) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('orgId', orgId);
+
+    let finalRole = role;
+    if (!finalRole) {
+      finalRole = this.decodeRoleFromJwt(token) ?? 'USER';
+    }
+    localStorage.setItem('role', finalRole);
+
+    this.token.set(token);
+    this.orgId.set(orgId);
+    this.role.set(finalRole as UserRole);
+  }
+
+  private decodeRoleFromJwt(token: string): string | null {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role ?? payload.roles?.[0] ?? null;
+    } catch {
+      return null;
+    }
   }
 }

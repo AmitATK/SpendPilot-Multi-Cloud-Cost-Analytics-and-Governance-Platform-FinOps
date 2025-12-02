@@ -14,7 +14,8 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "preserve",
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    // "emitDecoratorMetadata": true
 
   },
   "angularCompilerOptions": {
