@@ -23,8 +23,8 @@ import { MatMenuModule } from '@angular/material/menu';
     .brand{font-weight:700;letter-spacing:.2px}
     .spacer{flex:1 1 auto}
     .sidenav{width:240px;border-right:0}
-    .nav-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;margin:4px 8px;color:#2b2f38;text-decoration:none}
-    .nav-link.active,.nav-link:hover{background:#eef2ff;color:#1a237e}
+    .nav-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;margin:4px 8px;color:#ffff;text-decoration:none}
+    .nav-link.active,.nav-link:hover{background:#eef2fe;color:#1a237e}
     .content{padding:20px}
     .topbar{position:sticky;top:0;z-index:10}
   `],

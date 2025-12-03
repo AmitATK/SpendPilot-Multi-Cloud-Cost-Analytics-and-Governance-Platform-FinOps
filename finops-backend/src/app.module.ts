@@ -36,9 +36,18 @@ import { AppService } from './app.service';
 import { AdminModule } from './features/admin/admin.module';
 import { AppController } from './app.controller';
 import { HealthModule } from './core/health/health.module';
-
+import { LoggerModule } from 'nestjs-pino';
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        redact: ['req.headers.authorization', 'password', 'smtp', 'token'],
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty' }
+            : undefined,
+      },
+    }),
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

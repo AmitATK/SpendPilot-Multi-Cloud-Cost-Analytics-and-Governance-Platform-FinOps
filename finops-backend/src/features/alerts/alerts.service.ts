@@ -30,7 +30,7 @@ export class AlertsService {
   constructor(
     private readonly pg: Pool,
     @Optional() private readonly http?: HttpService, // optional; we fallback if not present
-  ) {}
+  ) { }
 
   /* ----------------------------- Channels CRUD ---------------------------- */
 
@@ -68,9 +68,9 @@ export class AlertsService {
     const args: any[] = [orgId, id];
 
     if (dto.channel !== undefined) { sets.push(`channel = $${args.length + 1}`); args.push(dto.channel); }
-    if (dto.target  !== undefined) { sets.push(`target  = $${args.length + 1}`); args.push(dto.target); }
-    if (dto.scope   !== undefined) { sets.push(`scope   = $${args.length + 1}::jsonb`); args.push(JSON.stringify(dto.scope)); }
-    if (dto.active  !== undefined) { sets.push(`active  = $${args.length + 1}`); args.push(dto.active); }
+    if (dto.target !== undefined) { sets.push(`target  = $${args.length + 1}`); args.push(dto.target); }
+    if (dto.scope !== undefined) { sets.push(`scope   = $${args.length + 1}::jsonb`); args.push(JSON.stringify(dto.scope)); }
+    if (dto.active !== undefined) { sets.push(`active  = $${args.length + 1}`); args.push(dto.active); }
 
     if (sets.length === 0) {
       const { rows } = await this.pg.query<AlertChannelRow>(
@@ -146,65 +146,65 @@ export class AlertsService {
   }
 
   /** Called by BudgetsService — signature matches your BudgetsService usage */
- /** Budget alerts — supports both 2-arg (legacy) and 3-arg (new) call styles */
-async sendBudgetAlert(
-  orgId: string,
-  // Either a Budget-like object OR a flat payload with mtd/limit/pct/etc.
-  arg2:
-    | { id?: string; name: string; monthlyLimit?: string | number | null; currency?: string | null }
-    | { name: string; mtd: number; limit: number; pct?: number; threshold: number; periodStart?: Date | string; currency?: string },
-  ctx?: { spend: number; pct: number; threshold: number; periodStart?: Date | string },
-): Promise<number> {
+  /** Budget alerts — supports both 2-arg (legacy) and 3-arg (new) call styles */
+  async sendBudgetAlert(
+    orgId: string,
+    // Either a Budget-like object OR a flat payload with mtd/limit/pct/etc.
+    arg2:
+      | { id?: string; name: string; monthlyLimit?: string | number | null; currency?: string | null }
+      | { name: string; mtd: number; limit: number; pct?: number; threshold: number; periodStart?: Date | string; currency?: string },
+    ctx?: { spend: number; pct: number; threshold: number; periodStart?: Date | string },
+  ): Promise<number> {
 
-  // Normalized fields
-  let name = '';
-  let currency = '';
-  let mtd = 0;
-  let limitNum = 0;
-  let pct = 0;
-  let threshold = 0;
-  let periodStartStr: string | undefined;
+    // Normalized fields
+    let name = '';
+    let currency = '';
+    let mtd = 0;
+    let limitNum = 0;
+    let pct = 0;
+    let threshold = 0;
+    let periodStartStr: string | undefined;
 
-  if ('mtd' in (arg2 as any)) {
-    // ---- Legacy 2-arg style: sendBudgetAlert(orgId, { name, mtd, limit, pct?, threshold, periodStart?, currency? })
-    const p = arg2 as {
-      name: string; mtd: number; limit: number; pct?: number; threshold: number; periodStart?: Date | string; currency?: string;
-    };
-    name = p.name;
-    mtd = Number(p.mtd ?? 0);
-    limitNum = Number(p.limit ?? 0);
-    pct = p.pct != null ? Number(p.pct) : (limitNum > 0 ? (mtd / limitNum) * 100 : 0);
-    threshold = Number(p.threshold ?? 0);
-    currency = p.currency ?? '';
-    if (p.periodStart) {
-      periodStartStr = typeof p.periodStart === 'string'
-        ? p.periodStart
-        : new Date(p.periodStart).toISOString().slice(0, 10);
+    if ('mtd' in (arg2 as any)) {
+      // ---- Legacy 2-arg style: sendBudgetAlert(orgId, { name, mtd, limit, pct?, threshold, periodStart?, currency? })
+      const p = arg2 as {
+        name: string; mtd: number; limit: number; pct?: number; threshold: number; periodStart?: Date | string; currency?: string;
+      };
+      name = p.name;
+      mtd = Number(p.mtd ?? 0);
+      limitNum = Number(p.limit ?? 0);
+      pct = p.pct != null ? Number(p.pct) : (limitNum > 0 ? (mtd / limitNum) * 100 : 0);
+      threshold = Number(p.threshold ?? 0);
+      currency = p.currency ?? '';
+      if (p.periodStart) {
+        periodStartStr = typeof p.periodStart === 'string'
+          ? p.periodStart
+          : new Date(p.periodStart).toISOString().slice(0, 10);
+      }
+    } else {
+
+      const budget = arg2 as { name: string; monthlyLimit?: string | number | null; currency?: string | null };
+      const c = ctx ?? { spend: 0, pct: 0, threshold: 0 };
+      name = budget.name;
+      currency = budget.currency ?? '';
+      limitNum = Number(budget.monthlyLimit ?? 0) || 0;
+      mtd = Number(c.spend ?? 0);
+      pct = Number(c.pct ?? (limitNum > 0 ? (mtd / limitNum) * 100 : 0));
+      threshold = Number(c.threshold ?? 0);
+      if (c.periodStart) {
+        periodStartStr = typeof c.periodStart === 'string'
+          ? c.periodStart
+          : new Date(c.periodStart).toISOString().slice(0, 10);
+      }
     }
-  } else {
 
-    const budget = arg2 as { name: string; monthlyLimit?: string | number | null; currency?: string | null };
-    const c = ctx ?? { spend: 0, pct: 0, threshold: 0 };
-    name = budget.name;
-    currency = budget.currency ?? '';
-    limitNum = Number(budget.monthlyLimit ?? 0) || 0;
-    mtd = Number(c.spend ?? 0);
-    pct = Number(c.pct ?? (limitNum > 0 ? (mtd / limitNum) * 100 : 0));
-    threshold = Number(c.threshold ?? 0);
-    if (c.periodStart) {
-      periodStartStr = typeof c.periodStart === 'string'
-        ? c.periodStart
-        : new Date(c.periodStart).toISOString().slice(0, 10);
-    }
+    const msg =
+      `Budget Alert: "${name}" reached ${pct.toFixed(1)}% of limit\n` +
+      (periodStartStr ? `Period start: ${periodStartStr}\n` : '') +
+      `MTD: ${mtd.toFixed(2)} / Limit: ${limitNum.toFixed(2)} ${currency}`;
+
+    return this.sendToChannels(orgId, undefined, msg);
   }
-
-  const msg =
-    `Budget Alert: "${name}" reached ${pct.toFixed(1)}% of limit\n` +
-    (periodStartStr ? `Period start: ${periodStartStr}\n` : '') +
-    `MTD: ${mtd.toFixed(2)} / Limit: ${limitNum.toFixed(2)} ${currency}`;
-
-  return this.sendToChannels(orgId, undefined, msg);
-}
 
 
   async sendAnomalyAlert(
@@ -273,28 +273,20 @@ async sendBudgetAlert(
 
   private async sendSlack(webhookUrl: string, text: string): Promise<boolean> {
     try {
-      if (!/^https?:\/\/.+/i.test(webhookUrl)) {
-        this.logger.warn(`Slack webhook invalid: ${webhookUrl}`);
+      const u = new URL(webhookUrl);
+      if (!u.hostname.endsWith('hooks.slack.com')) {
+        this.logger.warn(`Slack webhook blocked (host): ${u.hostname}`);
         return false;
       }
-
-      // Prefer HttpService if available (Axios), else fallback to native https
-      if (this.http) {
-        const res = await firstValueFrom(this.http.post(webhookUrl, { text }));
-        return res.status >= 200 && res.status < 300;
-      }
-
-      const { request } = await import('https');
-      const { URL } = await import('url');
-      const url = new URL(webhookUrl);
       const payload = JSON.stringify({ text });
+      const { request } = await import('https');
 
       const ok: boolean = await new Promise((resolve) => {
         const req = request(
           {
             method: 'POST',
-            hostname: url.hostname,
-            path: url.pathname + url.search,
+            hostname: u.hostname,
+            path: u.pathname + u.search,
             headers: {
               'Content-Type': 'application/json',
               'Content-Length': Buffer.byteLength(payload),
@@ -302,20 +294,14 @@ async sendBudgetAlert(
           },
           (res) => resolve(res.statusCode === 200),
         );
-
-        req.on('error', (e) => {
-          this.logger.warn(`Slack send error: ${e.message}`);
-          resolve(false);
-        });
-
+        req.on('error', () => resolve(false));
         req.write(payload);
         req.end();
       });
-
-      if (!ok) this.logger.warn('Slack webhook failed (non-200 status)');
+      if (!ok) this.logger.warn('Slack webhook non-200 status');
       return ok;
-    } catch (err) {
-      this.logger.warn(`Slack send failed: ${(err as Error).message}`);
+    } catch (e: any) {
+      this.logger.warn(`Slack send failed: ${e.message}`);
       return false;
     }
   }

@@ -1,11 +1,19 @@
+// src/app/core/auth.interceptor.ts
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { AuthService } from '../auth/auth.service';
+import { environment } from '../../environments/environments';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-    const auth = inject(AuthService);
-    const token = auth.token();
-    const headers: Record<string, string> = { 'X-Org': '00000000-0000-0000-0000-000000000000' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return next(req.clone({ setHeaders: headers }));
+  // Prefix base URL if request is relative
+  let url = req.url;
+  if (!/^https?:\/\//i.test(url)) {
+    const base = environment.apiBase.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    url = `${base}${path}`;
+  }
+
+  // Attach bearer token if present
+  const token = localStorage.getItem('token'); // <— single source of truth
+  const headers = token ? req.headers.set('Authorization', `Bearer ${token}`) : req.headers;
+
+  return next(req.clone({ url, headers }));
 };

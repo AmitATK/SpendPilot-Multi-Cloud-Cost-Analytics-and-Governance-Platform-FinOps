@@ -1,29 +1,15 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { AuthService } from './auth.service';
+import { environment } from '../environments/environments';
+
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const auth = inject(AuthService);
-  const router = inject(Router);
-
-  const token = auth.token();
-  const orgId = auth.orgId();
-
-  let headers = req.headers;
-  if (token) headers = headers.set('Authorization', `Bearer ${token}`);
-  if (orgId) headers = headers.set('X-Org', orgId);
-
-  const authedReq = req.clone({ headers });
-
-  return next(authedReq).pipe({
-    error: (err:any, _caught:any) => {
-      // If backend says 401, clear session & send to login
-      if (err?.status === 401) {
-        auth.clear();
-        router.navigateByUrl('/login');
-      }
-      throw err;
-    }
-  } as any);
+let url = req.url;
+if (!/^https?:\/\//i.test(url)) {
+const base = environment.apiBase.replace(/\/$/, '');
+const path = url.startsWith('/') ? url : `/${url}`;
+url = `${base}${path}`;
+}
+const token = localStorage.getItem('token');
+const headers = token ? req.headers.set('Authorization', `Bearer ${token}`) : req.headers;
+return next(req.clone({ url, headers }));
 };

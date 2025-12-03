@@ -11,6 +11,7 @@ export class AuthService {
 
   // reactive state (Angular signals)
   token = signal<string | null>(localStorage.getItem('token'));
+
   orgId = signal<string | null>(localStorage.getItem('orgId'));
   role  = signal<UserRole | null>((localStorage.getItem('role') as UserRole) || null);
 
