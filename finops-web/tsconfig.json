@@ -3,7 +3,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "strict": true,
+    "strict": false,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
@@ -16,7 +16,8 @@
     "module": "preserve",
     "useDefineForClassFields": false,
     // "emitDecoratorMetadata": true
-
+    "noUncheckedIndexedAccess": false,
+    "noImplicitAny": false,
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

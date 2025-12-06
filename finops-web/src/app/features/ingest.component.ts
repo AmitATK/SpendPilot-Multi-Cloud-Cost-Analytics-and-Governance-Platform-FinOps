@@ -48,6 +48,12 @@ export class IngestComponent {
     const payload = { bucket: fd.get('bucket'), prefix: fd.get('prefix'), region: fd.get('region') };
     this.api.ingestAwsCur(payload).subscribe();
   }
-  ingestAzure(file?: File) { if (!file) return; this.api.ingestAzure(file).subscribe(r => alert(`Azure rows: ${r.rows}`)); }
-  ingestGcp(file?: File) { if (!file) return; this.api.ingestGcp(file).subscribe(r => alert(`GCP rows: ${r.rows}`)); }
+  ingestAzure(file?: File) {
+    if (!file) return;
+    this.api.ingestAzure(file).subscribe(r => alert(`Azure rows: ${r.rows}`));
+  }
+  ingestGcp(file?: File) {
+    if (!file) return;
+    this.api.ingestGcp(file).subscribe(r => alert(`GCP rows: ${r.rows}`));
+  }
 }

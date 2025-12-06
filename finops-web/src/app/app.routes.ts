@@ -1,6 +1,7 @@
 // src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
+import { adminGuard } from './core/role.guard';
 
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/dashboard.component').then(m => m.DashboardComponent), canActivate: [authGuard] },
@@ -22,5 +23,11 @@ export const routes: Routes = [
   { path: 'profile', loadComponent: () => import('./features/profile.component').then(m => m.ProfileComponent), canActivate: [authGuard] },
   { path: 'policies', loadComponent: () => import('./features/alert-policies.component').then(m => m.AlertPoliciesComponent), canActivate: [authGuard] },
   { path: 'rightsizing', loadComponent: () => import('./features/rightsizing.component').then(m => m.RightsizingComponent), canActivate: [authGuard] },
+  {
+    path: 'settings',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/settings.component').then(m => m.SettingsComponent)
+  },
+
   { path: '**', redirectTo: '' },
 ];

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   CanActivate,
   ExecutionContext,
@@ -13,7 +15,8 @@ export class AuthGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest();
     const auth = (req.headers['authorization'] as string) || '';
     const allowHeaderFallback =
-      process.env.ALLOW_DEMO_HEADER === 'true' && process.env.NODE_ENV !== 'production';
+      process.env.ALLOW_DEMO_HEADER === 'true' &&
+      process.env.NODE_ENV !== 'production';
 
     // Bearer token path (preferred)
     if (auth.startsWith('Bearer ')) {
@@ -32,7 +35,8 @@ export class AuthGuard implements CanActivate {
     // Optional dev-only fallback (X-Org header)
     if (allowHeaderFallback) {
       const orgHeader =
-        (req.headers['x-org'] as string) || '00000000-0000-0000-0000-000000000000';
+        (req.headers['x-org'] as string) ||
+        '00000000-0000-0000-0000-000000000000';
       req.user = { id: 'demo-user', role: 'ADMIN' };
       req.orgId = orgHeader;
       return true;

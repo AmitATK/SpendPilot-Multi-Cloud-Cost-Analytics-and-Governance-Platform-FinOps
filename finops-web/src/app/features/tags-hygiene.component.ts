@@ -11,9 +11,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ApiService, TagCoverage } from '../api.service';
 
-function iso(d: Date) {
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString().slice(0,10);
+function iso(d: Date): string {
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+    .toISOString()
+    .slice(0, 10);
 }
+
 @Component({
   selector: 'app-tag-hygiene',
   standalone: true,
@@ -38,15 +41,15 @@ function iso(d: Date) {
       <form class="row" (submit)="reload($event)">
         <mat-form-field appearance="outline">
           <mat-label>From (YYYY-MM-DD)</mat-label>
-          <input matInput [(ngModel)]="from" name="from">
+          <input matInput [(ngModel)]="from" name="from" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>To (YYYY-MM-DD)</mat-label>
-          <input matInput [(ngModel)]="to" name="to">
+          <input matInput [(ngModel)]="to" name="to" />
         </mat-form-field>
         <mat-form-field appearance="outline" style="min-width:320px">
           <mat-label>Required tags (comma-separated)</mat-label>
-          <input matInput [(ngModel)]="requiredCsv" name="requiredCsv" placeholder="owner,env,team,cost_center">
+          <input matInput [(ngModel)]="requiredCsv" name="requiredCsv" placeholder="owner,env,team,cost_center" />
         </mat-form-field>
         <button mat-flat-button color="primary">Run</button>
       </form>
@@ -58,8 +61,8 @@ function iso(d: Date) {
         <div class="muted">Overall coverage with all required tags</div>
         <mat-progress-bar mode="determinate" [value]="overallPct()"></mat-progress-bar>
 
-        <div style="margin-top:14px">
-          <div *ngFor="let t of cov()?.perTag">
+        <div style="margin-top:14px" *ngIf="cov()?.perTag as perTag">
+          <div *ngFor="let t of perTag; trackBy: trackTag">
             <div style="display:flex;justify-content:space-between">
               <div><b>{{ t.tag }}</b></div>
               <div>{{ t.coverage_pct }}% ({{ t.with_tag }}/{{ t.total }})</div>
@@ -104,7 +107,7 @@ function iso(d: Date) {
             <th mat-header-cell *matHeaderCellDef>Tags</th>
             <td mat-cell *matCellDef="let r">
               <mat-chip-set>
-                <mat-chip *ngFor="let k of tagKeys(r.tags)">{{ k }}={{ r.tags[k] }}</mat-chip>
+                <mat-chip *ngFor="let k of tagKeys(r.tags); trackBy: trackKey">{{ k }}={{ r.tags[k] }}</mat-chip>
               </mat-chip-set>
             </td>
           </ng-container>
@@ -124,39 +127,62 @@ function iso(d: Date) {
 })
 export class TagHygieneComponent implements OnInit {
   private api = inject(ApiService);
-required: string[] = ['owner','env','team','cost_center'];
 
-  from = (() => { const d = new Date(); d.setDate(d.getDate()-30); return iso(d); })();
+  // default required tags (can be overridden by /v1/settings)
+  required: string[] = ['owner','env','team','cost_center'];
+
+  from = (() => { const d = new Date(); d.setDate(d.getDate() - 30); return iso(d); })();
   to = iso(new Date());
-  requiredCsv = 'owner,env,team,cost_center';
+  requiredCsv = this.required.join(',');
 
-  cols = ['day','service','tags','suggest'];
+  cols: string[] = ['day','service','tags','suggest'];
   cov = signal<TagCoverage | null>(null);
 
-  // ✅ Safe, strictly typed value for the template
-  overallPct = computed(() => this.cov()?.overall?.coverage_pct ?? 0);
+  // derives a safe percentage for the UI
+  overallPct = computed(() => Math.round(this.cov()?.overall?.coverage_pct ?? 0));
 
-  ngOnInit(){ 
-    this.load(); 
-    this.api.get('/v1/settings').pipe(
-).subscribe((s: any) => {
-  const from = this.from; const to = this.to; // whatever you already have
-  this.required = s?.settings?.requiredTags ?? this.required;
-  const reqCsv = this.required.join(',');
-  this.api.get(`/v1/tags/coverage?from=${from}&to=${to}&required=${encodeURIComponent(reqCsv)}`)
-    .subscribe(r => { /* existing render code */ });
-});
+  ngOnInit() {
+    // Read settings (if present) and then fetch coverage once
+    this.api.get<any>('/v1/settings').subscribe({
+      next: (s:any) => {
+        const settings = s?.settings ?? s ?? {};
+        const tags = Array.isArray(settings.requiredTags) ? settings.requiredTags as string[] : null;
+        if (tags && tags.length) {
+          this.required = tags.map(t => String(t));
+          this.requiredCsv = this.required.join(',');
+        }
+        this.load();
+      },
+      error: () => this.load() // still fetch with defaults
+    });
   }
-  reload(e: Event){ e.preventDefault(); this.load(); }
 
-  private load(){
-    const required = this.requiredCsv.split(',').map(s=>s.trim()).filter(Boolean);
+  reload(e: Event) {
+    e.preventDefault();
+    this.load();
+  }
+
+  private load() {
+    const required = this.requiredCsv
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
     this.api.tagCoverage({ from: this.from, to: this.to, required })
-      .subscribe(res => this.cov.set(res));
+      .subscribe({
+        next: (res) => this.cov.set(res),
+        error: () => this.cov.set({
+          from: this.from, to: this.to, required,
+          overall: { total: 0, with_all: 0, coverage_pct: 0 },
+          perTag: [], byService: [], samplesMissing: []
+        } as TagCoverage)
+      });
   }
 
   tagKeys(obj: any): string[] {
-    if (!obj || typeof obj !== 'object') return [];
-    return Object.keys(obj).slice(0, 8);
+    return obj && typeof obj === 'object' ? Object.keys(obj).slice(0, 8) : [];
   }
+
+  trackTag = (_: number, t: { tag: string }) => t.tag;
+  trackKey = (_: number, k: string) => k;
 }

@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:16
+    container_name: finops_db
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: finops_mailpit
+    ports:
+      - "8026:8025"  # UI
+      - "1026:1025"  # SMTP
+
+  backend:
+    build:
+      context: ./finops-backend
+    container_name: finops_backend
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      # Use the service name "db" as hostname
+      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+      JWT_SECRET: dev_only_change_me
+      ALERT_FROM: alerts@finops.local
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    image: postgres:16
+    container_name: finops_migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+      - ./finops-backend/db/migrations:/migrations:ro
+    entrypoint: ["/bin/sh","-c"]
+    command: >
+      "psql -h db -U postgres -d postgres -f /migrations/20251203_indexes.sql"
+    restart: "no"
+
+  web:
+    build:
+      context: ./finops-web
+      args:
+        # For dev compose, call backend via localhost:3000 in the browser
+        API_BASE: http://localhost:3000
+    container_name: finops_web
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  dbdata:

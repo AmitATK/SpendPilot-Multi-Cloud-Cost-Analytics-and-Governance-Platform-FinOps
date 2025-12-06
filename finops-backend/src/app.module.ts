@@ -37,6 +37,7 @@ import { AdminModule } from './features/admin/admin.module';
 import { AppController } from './app.controller';
 import { HealthModule } from './core/health/health.module';
 import { LoggerModule } from 'nestjs-pino';
+import { MetricsModule } from './metrics/metrics.module';
 @Module({
   imports: [
     LoggerModule.forRoot({
@@ -90,6 +91,7 @@ import { LoggerModule } from 'nestjs-pino';
     OptimizeModule,
     AdminModule,
     HealthModule,
+    MetricsModule,
   ],
   providers: [AppService],
   controllers: [HealthController, AppController],
