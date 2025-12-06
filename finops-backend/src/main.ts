@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import compression from 'compression';
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
   app.use(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     rateLimit({
@@ -29,17 +29,21 @@ async function bootstrap() {
     }),
   );
 
-  if (process.env.NODE_ENV !== 'production') {
-    app.enableCors({
-      origin: [
-        'http://localhost:4200',
-        'http://localhost:5173',
-        'http://localhost:8080',
-      ],
-    });
-  } else {
-    app.enableCors({ origin: ['https://app.yourdomain.com'] });
-  }
+  app.enableCors({
+    origin:
+      process.env.NODE_ENV !== 'production'
+        ? [
+            'http://localhost:4200',
+            'http://localhost:5173',
+            'http://localhost:8080',
+          ]
+        : [
+            'https://finops-liard.vercel.app',
+            'https://spendpilot.onrender.com',
+          ],
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  });
   // Swagger /docs
   const config = new DocumentBuilder()
     .setTitle('FinOps API')
@@ -53,7 +57,6 @@ async function bootstrap() {
   await app.listen(process.env.PORT || 3000);
 }
 bootstrap();
-
 
 // import { NestFactory } from '@nestjs/core';
 // import { AppModule } from './app.module';
