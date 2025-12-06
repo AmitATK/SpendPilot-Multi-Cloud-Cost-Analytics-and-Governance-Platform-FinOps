@@ -1,4 +1,5 @@
 export const environment = {
-production: false,
-apiBase: 'http://localhost:3000'
+production: true,
+// apiBase: 'http://localhost:3000'
+apiBase:'https://spendpilot.onrender.com/'
 };
