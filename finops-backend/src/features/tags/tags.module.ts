@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TagsController } from './tags.controller';
-import { DatabaseModule } from 'src/core/database.module';
+import { DatabaseModule } from '../../core/database.module';
 
 @Module({
   imports: [DatabaseModule],
