@@ -4,7 +4,6 @@ import {
   UploadedFile,
   UseInterceptors,
   Req,
-  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Pool } from 'pg';
@@ -27,7 +26,6 @@ function safeJson(v: any): any {
   }
 }
 
-// CSV row shapes (loose and tolerant to missing fields)
 type AzureCsvRow = {
   UsageDate?: string;
   UsageDateTime?: string;
@@ -54,12 +52,14 @@ type GcpCsvRow = {
 export class IngestController {
   constructor(private readonly pg: Pool) {}
 
-  /** Azure Cost Mgmt CSV upload */
   @Post('azure/csv')
   @UseInterceptors(FileInterceptor('file'))
-  async ingestAzureCsv(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+  async ingestAzureCsv(@Req() req: any, @UploadedFile() file: any) {
     const orgId: string = req.orgId;
-    const rows = parse(file.buffer, { columns: true, skip_empty_lines: true }) as any[];
+    const rows = parse(file.buffer, {
+      columns: true,
+      skip_empty_lines: true,
+    });
     let inserted = 0;
 
     for (const raw of rows as AzureCsvRow[]) {
@@ -69,8 +69,7 @@ export class IngestController {
       const service =
         raw.MeterCategory || raw.ProductName || raw.ServiceName || 'Azure';
 
-      const costNum =
-        Number(raw.CostInBillingCurrency ?? raw.Cost ?? 0) || 0;
+      const costNum = Number(raw.CostInBillingCurrency ?? raw.Cost ?? 0) || 0;
 
       const tags = safeJson(raw.Tags);
 
@@ -79,20 +78,24 @@ export class IngestController {
          values ($1, $2, $3, $4, $5)
          on conflict (org_id, usage_date, service)
          do update set unblended_cost = resource_usage_daily.unblended_cost + EXCLUDED.unblended_cost`,
-        [orgId, day, service, costNum, tags]
+        [orgId, day, service, costNum, tags],
       );
+
       inserted++;
     }
 
     return { ok: true, rows: inserted };
   }
 
-  /** GCP Billing Export CSV upload */
   @Post('gcp/csv')
   @UseInterceptors(FileInterceptor('file'))
-  async ingestGcpCsv(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+  async ingestGcpCsv(@Req() req: any, @UploadedFile() file: any) {
+    // ✅ FIXED
     const orgId: string = req.orgId;
-    const rows = parse(file.buffer, { columns: true, skip_empty_lines: true }) as any[];
+    const rows = parse(file.buffer, {
+      columns: true,
+      skip_empty_lines: true,
+    });
     let inserted = 0;
 
     for (const raw of rows as GcpCsvRow[]) {
@@ -110,8 +113,9 @@ export class IngestController {
          values ($1, $2, $3, $4, $5)
          on conflict (org_id, usage_date, service)
          do update set unblended_cost = resource_usage_daily.unblended_cost + EXCLUDED.unblended_cost`,
-        [orgId, day, service, costNum, tags]
+        [orgId, day, service, costNum, tags],
       );
+
       inserted++;
     }
 
