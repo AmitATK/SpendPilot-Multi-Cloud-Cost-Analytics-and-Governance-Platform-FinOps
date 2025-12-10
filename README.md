@@ -1,161 +1,302 @@
-SpendPilot — Multi-Cloud FinOps & Cost Governance
+# 🚀 SpendPilot  
+### **Multi-Cloud Cost Analytics • FinOps • Budget Governance • Anomaly Detection**
 
-✨ Features (built)
+<p align="center">
+  <img src="images/spendpilot-cover.png" width="800"/>
+</p>
 
-📊 Dashboard — daily spend & service breakdown (/v1/overview/daily)
+---
 
-💰 Budgets — CRUD + evaluation + alerts (/v1/budgets)
+## 🧩 Tech Stack
 
-🚨 Anomalies — rolling mean/σ + EWMA detect (/v1/anomalies, /v1/anomalies/detect)
+### **Frontend**
+| Tech | Badge |
+|------|-------|
+| Angular 20 | ![Angular](https://img.shields.io/badge/Angular-20-red?logo=angular&logoColor=white) |
+| TypeScript | ![TS](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript) |
+| Angular Material | ![Material](https://img.shields.io/badge/Angular%20Material-UI-blueviolet?logo=angular) |
+| RxJS | ![RxJS](https://img.shields.io/badge/RxJS-Observables-purple?logo=reactivex) |
+| Chart.js + ng2-charts | ![ChartJS](https://img.shields.io/badge/Chart.js-Data%20Viz-orange?logo=chartdotjs) |
 
-🔮 Forecast — EWMA + weekly seasonality (/v1/overview/forecast?alpha=&h=)
+### **Backend**
+| Tech | Badge |
+|------|-------|
+| NestJS | ![Nest](https://img.shields.io/badge/NestJS-Framework-red?logo=nestjs) |
+| Node.js | ![Node](https://img.shields.io/badge/Node.js-18-green?logo=node.js) |
+| PostgreSQL 16 | ![Postgres](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql) |
+| JWT Auth | ![JWT](https://img.shields.io/badge/JWT-Auth-purple?logo=jsonwebtokens) |
+| Cron Jobs | ![Cron](https://img.shields.io/badge/Cron-Schedulers-yellow) |
 
-🧾 Showback/Chargeback — monthly statements, Top-N filter, CSV export
+---
 
-🔔 Alert Channels — Email/Slack webhook CRUD (UI + API)
+# ✨ **Features (Production Ready)**
 
-🧹 Cleanup — idle candidates (starter scan endpoints)
+## 📊 **Cloud Cost Dashboard**
+- Daily totals  
+- Service-level breakdown  
+- Line + bar charts  
+- `/v1/overview/daily`
 
-⛽ Ingest — AWS CUR parsing → unified table (/v1/ingest/aws/cur)
+## 💰 **Budgets**
+- CRUD  
+- Auto-evaluation (daily cron)  
+- Threshold alerts  
+- `/v1/budgets`
 
-🔐 Auth — Register/Login (JWT), org scoping (X-Org), RBAC guard
+## 🚨 **Anomalies**
+- Rolling mean + σ  
+- EWMA model  
+- `/v1/anomalies` + `/v1/anomalies/detect`
 
-🧱 Tech Stack
+## 🔮 **Forecasting**
+- EWMA smoothing  
+- Weekly seasonality  
+- `/v1/overview/forecast?alpha=&h=`
 
-Frontend: Angular 20, Angular Material, RxJS, Chart.js (ng2-charts)
+## 🧾 **Showback / Chargeback**
+- Org/project level  
+- CSV export  
+- `/v1/statements`
 
-Backend: NestJS (Node.js/TypeScript), REST, schedulers/cron
+## 🔔 **Alert Channels**
+- Email (SMTP)  
+- Slack Webhook  
+- CRUD + send-test  
+- `/v1/alert-channels`
 
-DB: PostgreSQL 16 (SQL + JSONB)
+## 🧹 **Cleanup Engine**
+- Idle resource scanner (starter logic)  
+- `/v1/cleanup/scan`
 
-📦 Monorepo Layout
+## ⛽ **Cost Ingestion**
+- AWS CUR ingestion  
+- Normalizes into unified schema  
+- `/v1/ingest/aws/cur`
+
+## 🔐 **Authentication**
+- Register/Login  
+- JWT  
+- Org-scoping (`X-Org`)  
+- RBAC-ready structure
+
+---
+
+# 📦 **Monorepo Layout**
+
+```
 finops/
-├─ finops-web/        # Angular app (dashboard, budgets, anomalies, forecast, statements, alerts, cleanup, ingest)
-└─ finops-backend/    # NestJS API (auth, budgets, anomalies, overview, cleanup, ingest, statements, alert-channels)
+├── finops-web/          # Angular frontend
+└── finops-backend/      # NestJS/NodeJS backend API
+```
 
-🚀 Quickstart
-0) Prereqs
+---
 
-Node 18+ / npm
+# 🚀 Quickstart
 
-PostgreSQL 16
+## 0) **Prerequisites**
 
-(Optional) Mailhog/SMTP on localhost:1025 for email tests
+- Node.js 18+
+- PostgreSQL 16
+- Mailhog (optional) for email testing
 
-1) Backend env
+---
 
-Create finops-backend/.env:
+## 1) **Backend — .env**
 
+Create: `finops-backend/.env`
+
+```
 PORT=3000
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/finops
 JWT_SECRET=devsecret
 SMTP_HOST=127.0.0.1
 SMTP_PORT=1025
+```
 
-2) DB & migrations (minimal)
+---
+
+## 2) **DB Setup + Migrations**
+
+```
 createdb finops
-# run SQL files in order (adjust names if different)
-psql "$DATABASE_URL" -f finops-backend/migrations/001_schema.sql
-psql "$DATABASE_URL" -f finops-backend/migrations/002_seed.sql
-psql "$DATABASE_URL" -f finops-backend/migrations/003_auth.sql
 
-3) Install & run
-# API
+psql "$DATABASE_URL" -f migrations/001_schema.sql
+psql "$DATABASE_URL" -f migrations/002_seed.sql
+psql "$DATABASE_URL" -f migrations/003_auth.sql
+```
+
+---
+
+## 3) **Install & Run**
+
+### **Backend**
+```
 cd finops-backend
 npm i
 npm start
-# -> http://localhost:3000  (Swagger at /docs if enabled)
+```
+➡️ API: `http://localhost:3000`  
+➡️ Swagger: `/docs` (if enabled)
 
-# Web
+### **Frontend**
+```
 cd ../finops-web
 npm i
 npm start
-# -> http://localhost:4200  (uses proxy.conf.json to reach API)
+```
+➡️ UI: `http://localhost:4200`
 
-4) Create a user (example)
+---
+
+## 4) **Create a User**
+
+```
 curl -s -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"me@example.com","password":"pass123","name":"Me"}'
+```
 
+Default Org (demo):
 
-The app uses JWT (Authorization: Bearer) and org scoping. Default org in demo is:
-
+```
 00000000-0000-0000-0000-000000000000
+```
 
+All requests require:
 
-Most backend calls accept header:
-
+```
+Authorization: Bearer <jwt>
 X-Org: 00000000-0000-0000-0000-000000000000
+```
 
+---
 
-(Angular app handles auth automatically once you log in.)
+# 🔌 **Key API Endpoints**
 
-🔌 Key API Endpoints (sample)
-GET  /           -> health page
-GET  /healthz
+## Health
+```
+GET /
+GET /healthz
+```
 
-# Auth
+## Auth
+```
 POST /auth/register
 POST /auth/login
+```
 
-# Overview / Forecast
-GET  /v1/overview/daily?from=YYYY-MM-DD&to=YYYY-MM-DD[&service=...]
-GET  /v1/overview/forecast?alpha=0.3&h=30
+## Overview & Forecast
+```
+GET /v1/overview/daily?from=&to=
+GET /v1/overview/forecast?alpha=0.3&h=30
+```
 
-# Budgets
-GET  /v1/budgets
-POST /v1/budgets         (JSON payload)
+## Budgets
+```
+GET /v1/budgets
+POST /v1/budgets
+```
 
-# Anomalies
+## Anomalies
+```
 POST /v1/anomalies/detect
 GET  /v1/anomalies
+```
 
-# Ingest
-POST /v1/ingest/aws/cur  (upload or body payload)
+## Ingest
+```
+POST /v1/ingest/aws/cur
+```
 
-# Alert Channels
-GET  /v1/alert-channels
+## Alert Channels
+```
+GET /v1/alert-channels
 POST /v1/alert-channels
-PUT  /v1/alert-channels/:id
+PUT /v1/alert-channels/:id
 DELETE /v1/alert-channels/:id
+```
 
-# Statements (Showback/Chargeback)
-GET  /v1/statements?month=YYYY-MM&topN=10
-GET  /v1/statements/export.csv?month=YYYY-MM&topN=10  (includes service breakdown)
+## Statements (Showback)
+```
+GET /v1/statements?month=YYYY-MM&topN=10
+GET /v1/statements/export.csv?month=YYYY-MM
+```
 
-🖥️ UI Pages
+---
 
-Dashboard: Daily totals & service split (charts)
+# 🖥️ **UI Pages**
 
-Budgets: List, create, evaluate; attach alert channels
+- Dashboard  
+- Budgets  
+- Anomalies  
+- Forecast  
+- Statements (Showback/Chargeback)  
+- Alert Channels  
+- Cleanup (Idle Resource Scan)  
+- Ingest (AWS CUR)  
+- Auth (Login/Register)
 
-Anomalies: Trigger & review anomalies
+---
 
-Forecast: Actual vs Forecast (EWMA + weekly seasonality)
+# 🧪 Helpers
 
-Statements: Monthly showback with Top-N & CSV download
-
-Alerts: Manage alert channels (email/Slack), send test
-
-Cleanup: Idle candidates (starter)
-
-Ingest: Upload/trigger ingestion
-
-Auth: Login / Register (Angular Material theme)
-
-🧪 Demo helpers
-
-Seed/mock usage (if present):
-
+Seed mock usage:
+```
 curl -X POST http://localhost:3000/v1/usage/mock \
   -H "X-Org: 00000000-0000-0000-0000-000000000000"
+```
 
-🔒 Notes
+---
 
-All org-scoped queries require a valid JWT + X-Org header.
+# 🏗️ **System Design Architecture**
 
-For local emails, run Mailhog (or set SMTP_HOST/PORT to a working SMTP).
+<p align="center">
+  <img src="images/system-architecture.png" width="800"/>
+</p>
 
+### **High-Level Architecture**
+```
+          ┌────────────────────────────┐
+          │        Angular UI          │
+          │  (Charts, Tables, Auth)    │
+          └──────────────┬─────────────┘
+                         │ REST API
+                         ▼
+        ┌─────────────────────────────────┐
+        │            NestJS API           │
+        │ Auth • Budgets • Anomalies      │
+        │ Forecast • Statements • Ingest  │
+        └──────────────┬──────────────────┘
+                       │
+                       ▼
+        ┌─────────────────────────────────┐
+        │           PostgreSQL            │
+        │  usage, budgets, forecasts,     │
+        │  anomalies, alerts, statements  │
+        └─────────────────────────────────┘
 
-🙌 Credits
-Built with ❤️ using Angular, NestJS, and PostgreSQL to make cloud spend clear, predictable, and governed.
+```
+
+---
+
+# 🛡️ **Security**
+
+- JWT authentication  
+- Org-level scoping  
+- All cost data isolated by `org_id`  
+- Input validation + sanitization  
+- CORS enabled  
+- Helmet + Compression  
+
+---
+
+# 📸 Images (Add these in `/images` folder)
+<p>
+  <img src="images/Alerts.png" width="800"/>
+  <img src="images/Budgets.png" width="800"/>
+  <img src="images/Forecast.png" width="800"/>
+  <img src="images/Rightsizing.png" width="800"/>
+  <img src="images/Statements.png" width="800"/>
+</p>
+
+---
