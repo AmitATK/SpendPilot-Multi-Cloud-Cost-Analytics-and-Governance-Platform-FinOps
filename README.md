@@ -290,7 +290,7 @@ curl -X POST http://localhost:3000/v1/usage/mock \
 
 ---
 
-# 📸 Images (Add these in `/images` folder)
+# 📸 Images
 <p>
   <img src="images/Alerts.png" width="800"/>
   <img src="images/Budgets.png" width="800"/>
